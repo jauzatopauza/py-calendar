@@ -103,12 +103,16 @@ path = "baza/kalendarz.db"
 dbpath = "sqlite:///" + path
 echo = True 
 
-def utworz():
+def with_engine(f, *args, dispose=False):
     engine = create_engine(dbpath, echo=echo)
+    f(engine, *args)
+    if dispose:
+        engine.dispose()
+
+def utworz(engine):
     Base.metadata.create_all(engine)
 
-def dodaj_wydarzenie(nazwa, data_rozp, godzina_rozp, data_zak, godzina_zak, opis):
-    engine = create_engine(dbpath, echo=echo)
+def dodaj_wydarzenie(engine, nazwa, data_rozp, godzina_rozp, data_zak, godzina_zak, opis):
     Session = sessionmaker(engine)
     with Session() as session:
         wyd = Wydarzenie(nazwa=nazwa, 
@@ -123,8 +127,7 @@ def dodaj_wydarzenie(nazwa, data_rozp, godzina_rozp, data_zak, godzina_zak, opis
         session.close()
     return res 
 
-def usun_wydarzenie(id_wydarzenia):
-    engine = create_engine(dbpath, echo=echo)
+def usun_wydarzenie(engine, id_wydarzenia):
     Session = sessionmaker(engine)
     with Session() as session:
         wyd = session.get(Wydarzenie, id_wydarzenia)
@@ -132,8 +135,7 @@ def usun_wydarzenie(id_wydarzenia):
         session.commit()
         session.close() 
 
-def mod_wydarzenie(id_wydarzenia, nazwa, data_rozp, godzina_rozp, data_zak, godzina_zak, opis):
-    engine = create_engine(dbpath, echo=echo)
+def mod_wydarzenie(engine, id_wydarzenia, nazwa, data_rozp, godzina_rozp, data_zak, godzina_zak, opis):
     Session = sessionmaker(engine)
     with Session() as session:
         wyd = session.get(Wydarzenie, id_wydarzenia)
@@ -162,8 +164,7 @@ def dict_of_wydarzenie(wyd):
             "opis" : wyd.opis, 
             "nazwa_miejsca" : (wyd.miejsce.nazwa if wyd.miejsce is not None else None)}
 
-def znajdz_wydarzenie(nazwa):
-    engine = create_engine(dbpath, echo=echo)
+def znajdz_wydarzenie(engine, nazwa):
     Session = sessionmaker(engine)
     with Session() as session:
         stmt = select(Wydarzenie).where(Wydarzenie.nazwa == nazwa)
@@ -171,8 +172,7 @@ def znajdz_wydarzenie(nazwa):
         session.close()
     return res 
 
-def dodaj_miejsce(nazwa, adres):
-    engine = create_engine(dbpath, echo=echo)
+def dodaj_miejsce(engine, nazwa, adres):
     Session = sessionmaker(engine)
     with Session() as session:
         msc = Miejsce(nazwa=nazwa, adres=adres)
@@ -182,8 +182,7 @@ def dodaj_miejsce(nazwa, adres):
         session.close()
     return res 
 
-def usun_miejsce(id_miejsca):
-    engine = create_engine(dbpath, echo=echo)
+def usun_miejsce(engine, id_miejsca):
     Session = sessionmaker(engine)
     with Session() as session:
         msc = session.get(Miejsce, id_miejsca)
@@ -191,8 +190,7 @@ def usun_miejsce(id_miejsca):
         session.commit()
         session.close() 
 
-def mod_miejsce(id_miejsca, nazwa, adres):
-    engine = create_engine(dbpath, echo=echo)
+def mod_miejsce(engine, id_miejsca, nazwa, adres):
     Session = sessionmaker(engine)
     with Session() as session:
         msc = session.get(Miejsce, id_miejsca)
@@ -206,8 +204,7 @@ def mod_miejsce(id_miejsca, nazwa, adres):
 def dict_of_miejsce(msc):
     return {"id" : msc.id, "nazwa" : msc.nazwa, "adres" : msc.adres}
 
-def znajdz_miejsce(nazwa_miejsca):
-    engine = create_engine(dbpath, echo=echo)
+def znajdz_miejsce(engine, nazwa_miejsca):
     Session = sessionmaker(engine)
     with Session() as session:
         stmt = select(Miejsce).where(Miejsce.nazwa == nazwa_miejsca)
@@ -215,8 +212,7 @@ def znajdz_miejsce(nazwa_miejsca):
         session.close()
     return res 
 
-def dodaj_miejsce_do_wydarzenia(id_miejsca, id_wydarzenia):
-    engine = create_engine(dbpath, echo=echo)
+def dodaj_miejsce_do_wydarzenia(engine, id_miejsca, id_wydarzenia):
     Session = sessionmaker(engine)
     with Session() as session:
         msc = session.get(Miejsce, id_miejsca)
@@ -226,8 +222,7 @@ def dodaj_miejsce_do_wydarzenia(id_miejsca, id_wydarzenia):
         session.commit()
         session.close()
 
-def usun_miejsce_z_wydarzenia(id_wydarzenia):
-    engine = create_engine(dbpath, echo=echo)
+def usun_miejsce_z_wydarzenia(engine, id_wydarzenia):
     Session = sessionmaker(engine)
     with Session() as session:
         wyd = session.get(Wydarzenie, id_wydarzenia)
@@ -236,8 +231,7 @@ def usun_miejsce_z_wydarzenia(id_wydarzenia):
         session.commit()
         session.close()
 
-def znajdz_wydarzenia_w_miejscu(nazwa_miejsca):
-    engine = create_engine(dbpath, echo=echo)
+def znajdz_wydarzenia_w_miejscu(engine, nazwa_miejsca):
     Session = sessionmaker(engine)
     with Session() as session:
         stmt = select(Wydarzenie).join(Wydarzenie.miejsce).where(Miejsce.nazwa == nazwa_miejsca)
@@ -245,8 +239,7 @@ def znajdz_wydarzenia_w_miejscu(nazwa_miejsca):
         session.close()
     return res 
 
-def dodaj_osoba(imie, email):
-    engine = create_engine(dbpath, echo=echo)
+def dodaj_osoba(engine, imie, email):
     Session = sessionmaker(engine)
     with Session() as session:
         osoba = Osoba(imie=imie, email=email)
@@ -256,8 +249,7 @@ def dodaj_osoba(imie, email):
         session.close()
     return res 
 
-def usun_osoba(id_osoby):
-    engine = create_engine(dbpath, echo=echo)
+def usun_osoba(engine, id_osoby):
     Session = sessionmaker(engine)
     with Session() as session:
         os = session.get(Osoba, id_osoby)
@@ -265,8 +257,7 @@ def usun_osoba(id_osoby):
         session.commit()
         session.close()
 
-def mod_osoba(id_osoby, imie, email):
-    engine = create_engine(dbpath, echo=echo)
+def mod_osoba(engine, id_osoby, imie, email):
     Session = sessionmaker(engine)
     with Session() as session:
         os = session.get(Osoba, id_osoby)
@@ -280,8 +271,7 @@ def mod_osoba(id_osoby, imie, email):
 def dict_of_osoba(os):
     return {"id" : os.id, "imie" : os.imie, "email" : os.email}
 
-def znajdz_osoba(imie):
-    engine = create_engine(dbpath, echo=echo)
+def znajdz_osoba(engine, imie):
     Session = sessionmaker(engine)
     with Session() as session:
         oss = session.scalars(select(Osoba).where(Osoba.imie == imie))
@@ -289,8 +279,7 @@ def znajdz_osoba(imie):
         session.close()
     return res
 
-def zapisz(email, id_wydarzenia):
-    engine = create_engine(dbpath, echo=echo)
+def zapisz(engine, email, id_wydarzenia):
     Session = sessionmaker(engine)
     with Session() as session:
         os = session.scalars(select(Osoba).where(Osoba.email == email)).one()
@@ -299,8 +288,7 @@ def zapisz(email, id_wydarzenia):
         session.commit()
         session.close()
 
-def wypisz(email, id_wydarzenia):
-    engine = create_engine(dbpath, echo=echo)
+def wypisz(engine, email, id_wydarzenia):
     Session = sessionmaker(engine)
     with Session() as session:
         wyd = session.get(Wydarzenie, id_wydarzenia)
@@ -309,8 +297,7 @@ def wypisz(email, id_wydarzenia):
         session.commit()
         session.close()
 
-def znajdz_wydarzenia_osoby(email):
-    engine = create_engine(dbpath, echo=echo)
+def znajdz_wydarzenia_osoby(engine, email):
     Session = sessionmaker(engine)
     with Session() as session:
         stmt = select(Osoba.imie, Wydarzenie.id, Wydarzenie.nazwa).join(Osoba.wydarzenia).where(Osoba.email == email)
@@ -319,8 +306,7 @@ def znajdz_wydarzenia_osoby(email):
         session.close()
     return res 
 
-def znajdz_zapisanych_na_wydarzenie(id_wydarzenia):
-    engine = create_engine(dbpath, echo=echo)
+def znajdz_zapisanych_na_wydarzenie(engine, id_wydarzenia):
     Session = sessionmaker(engine)
     with Session() as session:
         wyd = session.get(Wydarzenie, id_wydarzenia)

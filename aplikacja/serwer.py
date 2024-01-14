@@ -1,8 +1,13 @@
 import dbops 
 from xmlrpc.server import SimpleXMLRPCServer
 
+def app_with_engine(f):
+    def res(*args):
+        return dbops.with_engine(f, *args)
+    return res
+
 server = SimpleXMLRPCServer(("localhost", 8000), allow_none=True)
-for _ in map(lambda p: server.register_function(*p),
+for _ in map(lambda p: server.register_function(app_with_engine(p[0]), p[1]),
 [(dbops.utworz, "utworz"),
  (dbops.dodaj_wydarzenie, "dodaj_wydarzenie"),
  (dbops.usun_wydarzenie, "usun_wydarzenie"),
