@@ -1,0 +1,35 @@
+OPTIONS
+-s Dostęp przez API.
+PARAMS
+--nr-wydarzenia Podaje numer wydarzenia.
+--nazwa Podaje nazwę (wydarzenia lub miejsca, w zależności od komendy).
+--godz-rozp Podaje godzinę GG:MM rozpoczęcia.
+--data-rozp Podaje datę RRRR-MM-DD rozpoczęcia.
+--godz-zak Podaje godzinę GG:MM zakończenia.
+--data-zak Podaje datę RRRR-MM-DD zakończenia.
+--opis Podaje opis.
+--nr-miejsca Podaje numer miejsca.
+--adres Podaje adres.
+--nr-osoby Podaje numer osoby.
+--imie Podaje imię.
+--email Podaje adres email.
+ACTIONS
+--dodaj-wydarzenie Dodaje wydarzenie do kalendarza. Podać (za pomocą odpowiednich opcji) - nazwę - datę rozpoczęcia RRRR-MM-DD - godzinę rozpoczęcia GG:MM - datę zakończenia - godzinę zakończenia - opis.
+--usun-wydarzenie Usuwa wydarzenie z kalendarza. Podać - nr wydarzenia.
+--mod-wydarzenie Modyfikuje wydarzenie. Podać - nr wydarzenia [- pola do modyfikacji].
+--znajdz-wydarzenie Szuka wydarzenia o podanej nazwie. Podać - nazwę.
+--utworz-miejsce Dodaj miejsce do bazy miejsc. Podać - nazwę [- adres].
+--zapomnij-miejsce Usuwa miejsce z bazy miejsc. Podać - nr miejsca.
+--mod-miejsce Modyfikuje miejsce. Podać - nr miejsca [- pola do modyfikacji].
+--znajdz-miejsce Szuka miejsca o podanej nazwie. Podać - nazwę.
+--dodaj-miejsce Dodaje miejsce do wydarzenia. Podać - nr wydarzenia - nr miejsca.
+--usun-miejsce Usuwa miejsce z wydarzenia. Podać - nr wydarzenia.
+--wydarzenia-w Szuka wydarzeń w miejscu o podanej nazwie. Podać - nazwę.
+--utworz-osobe Dodaje osobę do bazy osób. Podać - imię - adres email.
+--zapomnij-osobe Usuwa osobę z bazy osób. Podać - nr osoby.
+--mod-osoba Modyfikuje dane osoby. Podać - nr osoby [- pola do modyfikacji].
+--znajdz-osobe Szuka osób o podanym imieniu. Podać - imię.
+--zapisz Zapisuje osobę na wydarzenie. Podać - email tej osoby - nr wydarzenia.
+--wypisz Wypisuje osobę z wydarzenia. Podać - email tej osoby - nr wydarzenia.
+--gdzie-idzie Szuka wydarzeń, na które zapisana jest osoba o podanym adresie email. Podać - email.
+--kto-idzie Szuka osób zapisanych na wydarzenie. Podać - nr wydarzenia.
