@@ -125,10 +125,10 @@ def invoke_action(action: Any, action_args: Any, online: Any) -> Any:
         server = xmlrpc.client.ServerProxy("http://localhost:8000",
                                            allow_none=True)
         return eval("server." + action + "(*action_args)",
-                    globals(), locals())
+                    globals(), {"server": server, "action_args": action_args})
     else:
         return eval("dbops.with_engine(dbops." + action + ", *action_args)",
-                    globals(), locals())
+                    globals(), {"dbops": dbops, "action_args": action_args})
 
 
 def main():

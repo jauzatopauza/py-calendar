@@ -15,15 +15,13 @@ import datetime
 class Base(DeclarativeBase):
     pass
 
-
-uczestnictwa = Table("osoba_wydarzenie",
-                     Base.metadata,
-                     Column("osoba_id",
-                            ForeignKey("osoby.id"),
-                            primary_key=True),
-                     Column("wydarzenie_id",
-                            ForeignKey("wydarzenia.id"),
-                            primary_key=True))
+c1 : Column[Integer] = Column("osoba_id",
+                              ForeignKey("osoby.id"),
+                              primary_key=True)
+c2 : Column[Integer] = Column("wydarzenie_id",
+                              ForeignKey("wydarzenia.id"),
+                              primary_key=True)
+uczestnictwa = Table("osoba_wydarzenie", Base.metadata, c1, c2)
 """Table for many-to-many relation: participation of people in events."""
 
 
@@ -175,9 +173,10 @@ def with_engine(f: Callable[..., Any], *args: Any, dispose:bool=False) -> None:
     after performing some operations.
     """
     engine = create_engine(dbpath, echo=echo)
-    f(engine, *args)
+    res = f(engine, *args)
     if dispose:
         engine.dispose()
+    return res
 
 
 def utworz(engine: Engine) -> None:
