@@ -1,3 +1,7 @@
+"""Database operations. Provides functions that realize features
+provided by modules klient.py and serwer.py.
+"""
+
 from __future__ import annotations
 from sqlalchemy.orm import DeclarativeBase, relationship, mapped_column
 from sqlalchemy.orm import Mapped, validates, sessionmaker
@@ -8,7 +12,6 @@ from re import fullmatch
 import datetime
 
 
-# Baza danych
 class Base(DeclarativeBase):
     pass
 
@@ -21,24 +24,35 @@ uczestnictwa = Table("osoba_wydarzenie",
                      Column("wydarzenie_id",
                             ForeignKey("wydarzenia.id"),
                             primary_key=True))
+"""Table for many-to-many relation: participation of people in events."""
 
 
 class Wydarzenie(Base):
+    """ORM class for events."""
+
     __tablename__ = "wydarzenia"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     nazwa: Mapped[str] = mapped_column(String)
+    """Name"""
     data_rozp: Mapped[str] = mapped_column(String)
+    """Starting date"""
     godzina_rozp: Mapped[str] = mapped_column(String)
+    """Starting hour"""
     data_zak: Mapped[str] = mapped_column(String)
+    """Ending date"""
     godzina_zak: Mapped[str] = mapped_column(String)
+    """Ending hour"""
     opis: Mapped[str] = mapped_column(String)
+    """Description"""
     miejsce_id: Mapped[Optional[int]] \
         = mapped_column(ForeignKey("miejsca.id"))
     miejsce: Mapped[Optional["Miejsce"]] = relationship()
+    """Location"""
     uczestnicy: Mapped[List["Osoba"]] \
         = relationship("Osoba", secondary=uczestnictwa,
                        back_populates="wydarzenia")
+    """Participants"""
 
     @validates("godzina_rozp", "godzina_zak")
     def validate_hour(self, key, s):
@@ -74,11 +88,15 @@ class Wydarzenie(Base):
 
 
 class Miejsce(Base):
+    """ORM class for locations."""
+
     __tablename__ = "miejsca"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     nazwa: Mapped[str] = mapped_column(String)
+    """Name"""
     adres: Mapped[Optional[str]] = mapped_column(String)
+    """Address"""
 
     @validates("nazwa")
     def validate_nazwa(self, _, s):
@@ -94,15 +112,20 @@ class Miejsce(Base):
 
 
 class Osoba(Base):
+    """ORM class for people."""
+
     __tablename__ = "osoby"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     imie: Mapped[str] = mapped_column(String)
+    """Name"""
     email: Mapped[str] = mapped_column(String)
+    """Email address"""
     wydarzenia: Mapped[List[Wydarzenie]] \
         = relationship("Wydarzenie",
                        secondary=uczestnictwa,
                        back_populates="uczestnicy")
+    """Events that the person participates in"""
 
     @validates("imie")
     def validate_imie(self, _, s):
@@ -117,13 +140,32 @@ class Osoba(Base):
         return s
 
 
-# Operacje na bazie danych
 path = "baza/kalendarz.db"
+"""Path of database file to be accessed or created.
+
+Relative to directory `projekt`.
+"""
 dbpath = "sqlite:///" + path
 echo = True
+"""Parameter passed to SQLAlchemy's engine.
+
+Set to `True` iff the program should display all of its SQL operations
+on the database.
+"""
 
 
 def with_engine(f, *args, dispose=False):
+    """Call function with a new SQLAlchemy engine.
+
+    Positional arguments:
+    f -- function that takes an SQLAlchemy engine as first argument.
+    *args -- arguments with which to call f, except the engine.
+
+    Keyword arguments:
+    dispose -- set to `True` iff the engine should be disposed of after
+    calling `f`. Useful when testing, if one wants to delete the database
+    after performing some operations.
+    """
     engine = create_engine(dbpath, echo=echo)
     f(engine, *args)
     if dispose:
@@ -131,11 +173,13 @@ def with_engine(f, *args, dispose=False):
 
 
 def utworz(engine):
+    """Create database."""
     Base.metadata.create_all(engine)
 
 
 def dodaj_wydarzenie(engine, nazwa, data_rozp, godzina_rozp,
                      data_zak, godzina_zak, opis):
+    """Insert row with given field values into the table of events."""
     Session = sessionmaker(engine)
     with Session() as session:
         wyd = Wydarzenie(nazwa=nazwa,
@@ -152,6 +196,7 @@ def dodaj_wydarzenie(engine, nazwa, data_rozp, godzina_rozp,
 
 
 def usun_wydarzenie(engine, id_wydarzenia):
+    """Delete the row with the given ID from the table of events."""
     Session = sessionmaker(engine)
     with Session() as session:
         wyd = session.get(Wydarzenie, id_wydarzenia)
@@ -162,6 +207,10 @@ def usun_wydarzenie(engine, id_wydarzenia):
 
 def mod_wydarzenie(engine, id_wydarzenia, nazwa, data_rozp, godzina_rozp,
                    data_zak, godzina_zak, opis):
+    """Modify the row with the given ID in the table of events.
+
+    Pass `None` if a field is not to be modified.
+    """
     Session = sessionmaker(engine)
     with Session() as session:
         wyd = session.get(Wydarzenie, id_wydarzenia)
@@ -184,6 +233,13 @@ def mod_wydarzenie(engine, id_wydarzenia, nazwa, data_rozp, godzina_rozp,
 
 
 def dict_of_wydarzenie(wyd):
+    """Return a dictionary describing an event.
+
+    Fields:
+    id, nazwa, data_rozp, godzina_rozp,
+    data_zak, godzina_zak, opis -- see Wydarzenie.
+    nazwa_miejsca -- name of location; `None` if no location is assigned.
+    """
     return {"id": wyd.id, "nazwa": wyd.nazwa,
             "data_rozp": wyd.data_rozp,
             "data_zak": wyd.data_zak,
@@ -195,6 +251,10 @@ def dict_of_wydarzenie(wyd):
 
 
 def znajdz_wydarzenie(engine, nazwa):
+    """Find events with the exact given name.
+
+    Returns a list of dictionaries -- see dict_of_wydarzenie.
+    """
     Session = sessionmaker(engine)
     with Session() as session:
         stmt = select(Wydarzenie).where(Wydarzenie.nazwa == nazwa)
@@ -204,6 +264,7 @@ def znajdz_wydarzenie(engine, nazwa):
 
 
 def dodaj_miejsce(engine, nazwa, adres):
+    """Insert row with given field values into the table of locations."""
     Session = sessionmaker(engine)
     with Session() as session:
         msc = Miejsce(nazwa=nazwa, adres=adres)
@@ -215,6 +276,7 @@ def dodaj_miejsce(engine, nazwa, adres):
 
 
 def usun_miejsce(engine, id_miejsca):
+    """Delete the row with the given ID from the table of locations."""
     Session = sessionmaker(engine)
     with Session() as session:
         msc = session.get(Miejsce, id_miejsca)
@@ -224,6 +286,10 @@ def usun_miejsce(engine, id_miejsca):
 
 
 def mod_miejsce(engine, id_miejsca, nazwa, adres):
+    """Modify the row with the given ID in the table of locations.
+
+    Pass `None` if a field is not to be modified.
+    """
     Session = sessionmaker(engine)
     with Session() as session:
         msc = session.get(Miejsce, id_miejsca)
@@ -236,10 +302,19 @@ def mod_miejsce(engine, id_miejsca, nazwa, adres):
 
 
 def dict_of_miejsce(msc):
+    """Return a dictionary describing a location.
+
+    Fields:
+    id, nazwa, adres -- see Miejsce.
+    """
     return {"id": msc.id, "nazwa": msc.nazwa, "adres": msc.adres}
 
 
 def znajdz_miejsce(engine, nazwa_miejsca):
+    """Find locations with the exact given name.
+
+    Returns a list of dictionaries -- see dict_of_miejsce.
+    """
     Session = sessionmaker(engine)
     with Session() as session:
         stmt = select(Miejsce).where(Miejsce.nazwa == nazwa_miejsca)
@@ -249,17 +324,32 @@ def znajdz_miejsce(engine, nazwa_miejsca):
 
 
 def dodaj_miejsce_do_wydarzenia(engine, id_miejsca, id_wydarzenia):
+    """Assign a location to an event.
+
+    Modifies the row of the event by updating miejsce_id and miejsce.
+
+    Positional arguments:
+    id_miejsca -- the location's ID.
+    id_wydarzenia -- the event's ID.
+    """
     Session = sessionmaker(engine)
     with Session() as session:
         msc = session.get(Miejsce, id_miejsca)
         wyd = session.get(Wydarzenie, id_wydarzenia)
         wyd.miejsce_id = id_miejsca
-        wyd.miejsca = msc
+        wyd.miejsce = msc
         session.commit()
         session.close()
 
 
 def usun_miejsce_z_wydarzenia(engine, id_wydarzenia):
+    """Removes a location from an event.
+
+    Updates the event row's miejsce and miejsce_id fields to null.
+
+    Positional arguments:
+    id_wydarzenia -- the event's ID.
+    """
     Session = sessionmaker(engine)
     with Session() as session:
         wyd = session.get(Wydarzenie, id_wydarzenia)
@@ -270,6 +360,10 @@ def usun_miejsce_z_wydarzenia(engine, id_wydarzenia):
 
 
 def znajdz_wydarzenia_w_miejscu(engine, nazwa_miejsca):
+    """Return events that take place in locations with the given name.
+
+    Returns a list of dictionaries -- see dict_of_wydarzenie.
+    """
     Session = sessionmaker(engine)
     with Session() as session:
         stmt = ((select(Wydarzenie)
@@ -281,6 +375,7 @@ def znajdz_wydarzenia_w_miejscu(engine, nazwa_miejsca):
 
 
 def dodaj_osoba(engine, imie, email):
+    """Insert row with the given field values into the table of people."""
     Session = sessionmaker(engine)
     with Session() as session:
         osoba = Osoba(imie=imie, email=email)
@@ -292,6 +387,7 @@ def dodaj_osoba(engine, imie, email):
 
 
 def usun_osoba(engine, id_osoby):
+    """Delete the row with the given ID from the table of peoble."""
     Session = sessionmaker(engine)
     with Session() as session:
         os = session.get(Osoba, id_osoby)
@@ -301,6 +397,10 @@ def usun_osoba(engine, id_osoby):
 
 
 def mod_osoba(engine, id_osoby, imie, email):
+    """Modify the row with the given ID in the table of people.
+
+    Pass `None` if a field is not to be modified.
+    """
     Session = sessionmaker(engine)
     with Session() as session:
         os = session.get(Osoba, id_osoby)
@@ -313,10 +413,19 @@ def mod_osoba(engine, id_osoby, imie, email):
 
 
 def dict_of_osoba(os):
+    """Return a dictionary describing a person.
+
+    Fields:
+    id, imie, email -- see Osoba.
+    """
     return {"id": os.id, "imie": os.imie, "email": os.email}
 
 
 def znajdz_osoba(engine, imie):
+    """Find people with the exact given name.
+
+    Returns a list of dictionaries -- see dict_of_osoba.
+    """
     Session = sessionmaker(engine)
     with Session() as session:
         oss = session.scalars(select(Osoba).where(Osoba.imie == imie))
@@ -326,6 +435,17 @@ def znajdz_osoba(engine, imie):
 
 
 def zapisz(engine, email, id_wydarzenia):
+    """Sign a person up for an event.
+
+    Inserts a row into the table of participations (see uczestnictwa).
+    Modifies the person row's wydarzenia field,
+    and the event row's uczestnicy field.
+    Assumes that the people's email addresses are unique.
+
+    Positional arguments:
+    email -- email address used to query the table of people.
+    id_wydarzenia -- the event's ID.
+    """
     Session = sessionmaker(engine)
     with Session() as session:
         os = session.scalars(select(Osoba).where(Osoba.email == email)).one()
@@ -336,6 +456,17 @@ def zapisz(engine, email, id_wydarzenia):
 
 
 def wypisz(engine, email, id_wydarzenia):
+    """Remove a person from an event.
+
+    Deletes a row from the table of participations (see uczestnictwa).
+    Modifies the person row's wydarzenia field
+    and the event row's uczestnicy field.
+    Assumes that the people's email addresses are unique.
+
+    Positional arguments:
+    email -- email address used to query the table of people.
+    id_wydarzenia -- the event's ID.
+    """
     Session = sessionmaker(engine)
     with Session() as session:
         wyd = session.get(Wydarzenie, id_wydarzenia)
@@ -346,6 +477,14 @@ def wypisz(engine, email, id_wydarzenia):
 
 
 def znajdz_wydarzenia_osoby(engine, email):
+    """Find events that a person participates in.
+
+    Returns a list of dictionaries with fields id and nazwa.
+    Assumes that the people's email addresses are unique.
+
+    Positional arguments:
+    email -- email address used to query the table of people.
+    """
     Session = sessionmaker(engine)
     with Session() as session:
         stmt = ((select(Osoba.imie, Wydarzenie.id, Wydarzenie.nazwa)
@@ -359,6 +498,13 @@ def znajdz_wydarzenia_osoby(engine, email):
 
 
 def znajdz_zapisanych_na_wydarzenie(engine, id_wydarzenia):
+    """Find the participants of an event.
+
+    Returns a list of dictionaries -- see dict_of_osoba.
+
+    Positional arguments:
+    id_wydarzenia -- the event's ID.
+    """
     Session = sessionmaker(engine)
     with Session() as session:
         wyd = session.get(Wydarzenie, id_wydarzenia)

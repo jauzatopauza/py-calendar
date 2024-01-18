@@ -1,15 +1,31 @@
+"""Client script with command line user interface. Run with -h for help.
+Requires a help.txt file to exist in directory `projekt/aplikacja`.
+To learn the required format, see configure_parser.
+"""
+
 import argparse
 import dbops
 import xmlrpc.client
 
-# Formatowanie odpowiedzi
-
 
 def format_id_output(tbl, id):
+    """Return a string with a message that some entity has been added.
+    
+    Positional arguments:
+    tbl -- Polish name of the entity in the accusative case;
+    "wydarzenie" for event, "miejsce" for location, "osobę" for person.
+    id -- the added entity's ID.
+    """
     return "Dodano {0} nr {1}.".format(tbl, id)
 
 
 def format_wydarzenie_output(wyd_dict):
+    """Return a string summarizing an event.
+    
+    Positional arguments:
+    wyd_dict -- dictionary representing an event --
+    see dbops.dict_of_wydarzenie.
+    """
     res = ("nr {0} nazwa: {1}; zaczyna się {2} {3};"
            " kończy się {4} {5};\nopis: {6}")
     res = res.format(wyd_dict["id"], wyd_dict["nazwa"],
@@ -22,18 +38,34 @@ def format_wydarzenie_output(wyd_dict):
 
 
 def format_osoba_output(os_dict):
+    """Return a string summarizing a person.
+    
+    Positional arguments:
+    os_dict -- dictionary representing a person --
+    see dbops.dict_of_osoba.
+    """
     return "nr {0} imię: {1}; email: {2}".format(os_dict["id"],
                                                  os_dict["imie"],
                                                  os_dict["email"])
 
 
 def format_miejsce_output(msc_dict):
+    """Return a string summarizing a location.
+    
+    Positional arguments:
+    wyd_dict -- dictionary representing a location --
+    see dbops.dict_of_miejsce.
+    """
     return "nr {0} nazwa: {1}; adres {2}".format(msc_dict["id"],
                                                  msc_dict["nazwa"],
                                                  msc_dict["adres"])
 
 
 def print_list_output(xs):
+    """Print a list of strings, separated by double newline.
+    
+    Also outputs the number of results i.e. the length of the list.
+    """
     print("----WYNIKI----")
     num_of_results = 0
     for x in xs:
@@ -42,12 +74,29 @@ def print_list_output(xs):
     print(f"(liczba wyników: {num_of_results})")
 
 
-# Interakcja z użytkownikiem
 class BadParserConfigFileError(Exception):
+    """Exception raised by configure_parser."""
     pass
 
 
 def configure_parser(parser):
+    r"""Configure the command line argument parser 
+    according to help.txt. Required format:
+    
+    - first line is exactly "OPTIONS\n", where \n is the newline character
+    - the following lines specify arguments that do not accept a parameter
+    and can be used independently of other arguments;
+    notation: name of the argument and help text separated by a single space
+    - some further line is exactly "PARAMS\n"
+    - the following lines specify arguments that accept a parameter
+    and can be used independently of other arguments
+    - some further line is exactly "ACTIONS\n"
+    - the following lines specify arguments that do not accept a parameter
+    and cannot be used together with any of the other arguments listed
+    under ACTIONS.
+    
+    The first requirement is enforced by raising BadParserConfigFileError.
+    """
     with open("aplikacja/help.txt", "r", encoding="utf-8") as f:
         line = f.readline()
         if line != "OPTIONS\n":
