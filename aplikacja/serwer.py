@@ -5,10 +5,11 @@ Quit by keyboard interrupt.
 
 import dbops
 from xmlrpc.server import SimpleXMLRPCServer
+from typing import Callable, Any
 
 
-def app_with_engine(f):
-    def res(*args):
+def app_with_engine(f: Callable[..., Any]) -> Callable[..., Any]:
+    def res(*args: Any) -> Any:
         return dbops.with_engine(f, *args)
     return res
 

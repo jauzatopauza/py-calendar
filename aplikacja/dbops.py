@@ -6,8 +6,8 @@ from __future__ import annotations
 from sqlalchemy.orm import DeclarativeBase, relationship, mapped_column
 from sqlalchemy.orm import Mapped, validates, sessionmaker
 from sqlalchemy import Table, Column, ForeignKey, String, Integer
-from sqlalchemy import create_engine, select
-from typing import List, Optional
+from sqlalchemy import Engine, create_engine, select
+from typing import List, Optional, Callable, Dict, Union, Any
 from re import fullmatch
 import datetime
 
@@ -55,7 +55,7 @@ class Wydarzenie(Base):
     """Participants"""
 
     @validates("godzina_rozp", "godzina_zak")
-    def validate_hour(self, key, s):
+    def validate_hour(self, key: str, s: str) -> str:
         (hh, _, mm) = s.partition(":")
         try:
             hour = int(hh)
@@ -73,7 +73,7 @@ class Wydarzenie(Base):
         return s
 
     @validates("data_rozp", "data_zak")
-    def validate_date(self, _, s):
+    def validate_date(self, _, s: str) -> str:
         try:
             datetime.date.fromisoformat(s)
         except ValueError:
@@ -81,7 +81,7 @@ class Wydarzenie(Base):
         return s
 
     @validates("nazwa")
-    def validate_nazwa(self, _, s):
+    def validate_nazwa(self, _, s: str) -> str:
         if s == "":
             raise ValueError("Nazwa powinna być niepusta.")
         return s
@@ -99,13 +99,13 @@ class Miejsce(Base):
     """Address"""
 
     @validates("nazwa")
-    def validate_nazwa(self, _, s):
+    def validate_nazwa(self, _, s: str) -> str:
         if s == "":
             raise ValueError("Nazwa powinna być niepusta.")
         return s
 
     @validates("adres")
-    def validate_adres(self, _, s):
+    def validate_adres(self, _, s: str) -> str:
         if s == "":
             raise ValueError("Adres powinien być niepusty.")
         return s
@@ -128,16 +128,23 @@ class Osoba(Base):
     """Events that the person participates in"""
 
     @validates("imie")
-    def validate_imie(self, _, s):
+    def validate_imie(self, _, s: str) -> str:
         if s == "":
             raise ValueError("Imię powinno być niepuste.")
         return s
 
     @validates("email")
-    def validate_email(self, _, s):
+    def validate_email(self, _, s: str) -> str:
         if fullmatch(r"^\S+@[^@\s.]+\.[^@\s]+", s) is None:
             raise ValueError("Niepoprawny adres email.")
         return s
+
+
+class NotFoundError(Exception):
+    """Error raised by functions that modify rows if no row is found."""
+    wydarzenie_msg = "Nie ma takiego wydarzenia."
+    miejsce_msg = "Nie ma takiego miejsca."
+    osoba_msg = "Nie ma takiej osoby."
 
 
 path = "baza/kalendarz.db"
@@ -152,9 +159,10 @@ echo = True
 Set to `True` iff the program should display all of its SQL operations
 on the database.
 """
+AnsDict = Dict[str, Union[int, Optional[str]]]
 
 
-def with_engine(f, *args, dispose=False):
+def with_engine(f: Callable[..., Any], *args: Any, dispose:bool=False) -> None:
     """Call function with a new SQLAlchemy engine.
 
     Positional arguments:
@@ -163,7 +171,7 @@ def with_engine(f, *args, dispose=False):
 
     Keyword arguments:
     dispose -- set to `True` iff the engine should be disposed of after
-    calling `f`. Useful when testing, if one wants to delete the database
+    calling f. Useful when testing, if one wants to delete the database
     after performing some operations.
     """
     engine = create_engine(dbpath, echo=echo)
@@ -172,13 +180,14 @@ def with_engine(f, *args, dispose=False):
         engine.dispose()
 
 
-def utworz(engine):
+def utworz(engine: Engine) -> None:
     """Create database."""
     Base.metadata.create_all(engine)
 
 
-def dodaj_wydarzenie(engine, nazwa, data_rozp, godzina_rozp,
-                     data_zak, godzina_zak, opis):
+def dodaj_wydarzenie(engine: Engine, nazwa: str,
+                     data_rozp: str, godzina_rozp:str,
+                     data_zak: str, godzina_zak: str, opis: str) -> int:
     """Insert row with given field values into the table of events."""
     Session = sessionmaker(engine)
     with Session() as session:
@@ -195,7 +204,7 @@ def dodaj_wydarzenie(engine, nazwa, data_rozp, godzina_rozp,
     return res
 
 
-def usun_wydarzenie(engine, id_wydarzenia):
+def usun_wydarzenie(engine: Engine, id_wydarzenia: int) -> None:
     """Delete the row with the given ID from the table of events."""
     Session = sessionmaker(engine)
     with Session() as session:
@@ -205,15 +214,21 @@ def usun_wydarzenie(engine, id_wydarzenia):
         session.close()
 
 
-def mod_wydarzenie(engine, id_wydarzenia, nazwa, data_rozp, godzina_rozp,
-                   data_zak, godzina_zak, opis):
+def mod_wydarzenie(engine: Engine,
+                   id_wydarzenia: int, nazwa: Optional[str],
+                   data_rozp: Optional[str], godzina_rozp: Optional[str],
+                   data_zak: Optional[str], godzina_zak: Optional[str],
+                   opis: Optional[str]) -> None:
     """Modify the row with the given ID in the table of events.
 
     Pass `None` if a field is not to be modified.
+    Throws NotFoundError if no row with given ID exists.
     """
     Session = sessionmaker(engine)
     with Session() as session:
         wyd = session.get(Wydarzenie, id_wydarzenia)
+        if wyd is None:
+            raise NotFoundError(NotFoundError.wydarzenie_msg)
 
         if nazwa is not None:
             wyd.nazwa = nazwa
@@ -232,7 +247,7 @@ def mod_wydarzenie(engine, id_wydarzenia, nazwa, data_rozp, godzina_rozp,
         session.close()
 
 
-def dict_of_wydarzenie(wyd):
+def dict_of_wydarzenie(wyd: Wydarzenie) -> AnsDict:
     """Return a dictionary describing an event.
 
     Fields:
@@ -250,7 +265,7 @@ def dict_of_wydarzenie(wyd):
                               else None)}
 
 
-def znajdz_wydarzenie(engine, nazwa):
+def znajdz_wydarzenie(engine: Engine, nazwa: str) -> List[AnsDict]:
     """Find events with the exact given name.
 
     Returns a list of dictionaries -- see dict_of_wydarzenie.
@@ -263,7 +278,7 @@ def znajdz_wydarzenie(engine, nazwa):
     return res
 
 
-def dodaj_miejsce(engine, nazwa, adres):
+def dodaj_miejsce(engine: Engine, nazwa: str, adres: str) -> int:
     """Insert row with given field values into the table of locations."""
     Session = sessionmaker(engine)
     with Session() as session:
@@ -275,7 +290,7 @@ def dodaj_miejsce(engine, nazwa, adres):
     return res
 
 
-def usun_miejsce(engine, id_miejsca):
+def usun_miejsce(engine: Engine, id_miejsca: int) -> None:
     """Delete the row with the given ID from the table of locations."""
     Session = sessionmaker(engine)
     with Session() as session:
@@ -285,7 +300,8 @@ def usun_miejsce(engine, id_miejsca):
         session.close()
 
 
-def mod_miejsce(engine, id_miejsca, nazwa, adres):
+def mod_miejsce(engine: Engine, id_miejsca: int,
+                nazwa: Optional[str], adres: Optional[str]) -> None:
     """Modify the row with the given ID in the table of locations.
 
     Pass `None` if a field is not to be modified.
@@ -293,6 +309,8 @@ def mod_miejsce(engine, id_miejsca, nazwa, adres):
     Session = sessionmaker(engine)
     with Session() as session:
         msc = session.get(Miejsce, id_miejsca)
+        if msc is None:
+            raise NotFoundError(NotFoundError.miejsce_msg)
         if nazwa is not None:
             msc.nazwa = nazwa
         if adres is not None:
@@ -301,7 +319,7 @@ def mod_miejsce(engine, id_miejsca, nazwa, adres):
         session.close()
 
 
-def dict_of_miejsce(msc):
+def dict_of_miejsce(msc: Miejsce) -> AnsDict:
     """Return a dictionary describing a location.
 
     Fields:
@@ -310,7 +328,7 @@ def dict_of_miejsce(msc):
     return {"id": msc.id, "nazwa": msc.nazwa, "adres": msc.adres}
 
 
-def znajdz_miejsce(engine, nazwa_miejsca):
+def znajdz_miejsce(engine: Engine, nazwa_miejsca: str) -> List[AnsDict]:
     """Find locations with the exact given name.
 
     Returns a list of dictionaries -- see dict_of_miejsce.
@@ -323,7 +341,8 @@ def znajdz_miejsce(engine, nazwa_miejsca):
     return res
 
 
-def dodaj_miejsce_do_wydarzenia(engine, id_miejsca, id_wydarzenia):
+def dodaj_miejsce_do_wydarzenia(engine: Engine, id_miejsca: int,
+                                id_wydarzenia: int) -> None:
     """Assign a location to an event.
 
     Modifies the row of the event by updating miejsce_id and miejsce.
@@ -336,13 +355,17 @@ def dodaj_miejsce_do_wydarzenia(engine, id_miejsca, id_wydarzenia):
     with Session() as session:
         msc = session.get(Miejsce, id_miejsca)
         wyd = session.get(Wydarzenie, id_wydarzenia)
+        if wyd is None:
+            raise NotFoundError(NotFoundError.wydarzenie_msg)
+        if msc is None: 
+            raise NotFoundError(NotFoundError.miejsce_msg)
         wyd.miejsce_id = id_miejsca
         wyd.miejsce = msc
         session.commit()
         session.close()
 
 
-def usun_miejsce_z_wydarzenia(engine, id_wydarzenia):
+def usun_miejsce_z_wydarzenia(engine: Engine, id_wydarzenia: int) -> None:
     """Removes a location from an event.
 
     Updates the event row's miejsce and miejsce_id fields to null.
@@ -353,13 +376,15 @@ def usun_miejsce_z_wydarzenia(engine, id_wydarzenia):
     Session = sessionmaker(engine)
     with Session() as session:
         wyd = session.get(Wydarzenie, id_wydarzenia)
+        if wyd is None:
+            raise NotFoundError(NotFoundError.wydarzenie_msg)
         wyd.miejsce_id = None
         wyd.miejsce = None
         session.commit()
         session.close()
 
 
-def znajdz_wydarzenia_w_miejscu(engine, nazwa_miejsca):
+def znajdz_wydarzenia_w_miejscu(engine: Engine, nazwa_miejsca: str) -> List[AnsDict]:
     """Return events that take place in locations with the given name.
 
     Returns a list of dictionaries -- see dict_of_wydarzenie.
@@ -374,7 +399,7 @@ def znajdz_wydarzenia_w_miejscu(engine, nazwa_miejsca):
     return res
 
 
-def dodaj_osoba(engine, imie, email):
+def dodaj_osoba(engine: Engine, imie: str, email: str) -> int:
     """Insert row with the given field values into the table of people."""
     Session = sessionmaker(engine)
     with Session() as session:
@@ -386,7 +411,7 @@ def dodaj_osoba(engine, imie, email):
     return res
 
 
-def usun_osoba(engine, id_osoby):
+def usun_osoba(engine: Engine, id_osoby: int) -> None:
     """Delete the row with the given ID from the table of peoble."""
     Session = sessionmaker(engine)
     with Session() as session:
@@ -396,7 +421,8 @@ def usun_osoba(engine, id_osoby):
         session.close()
 
 
-def mod_osoba(engine, id_osoby, imie, email):
+def mod_osoba(engine: Engine, id_osoby: int,
+              imie: Optional[str], email: Optional[str]) -> None:
     """Modify the row with the given ID in the table of people.
 
     Pass `None` if a field is not to be modified.
@@ -404,6 +430,8 @@ def mod_osoba(engine, id_osoby, imie, email):
     Session = sessionmaker(engine)
     with Session() as session:
         os = session.get(Osoba, id_osoby)
+        if os is None:
+            raise NotFoundError(NotFoundError.osoba_msg)
         if imie is not None:
             os.imie = imie
         if email is not None:
@@ -412,7 +440,7 @@ def mod_osoba(engine, id_osoby, imie, email):
         session.close()
 
 
-def dict_of_osoba(os):
+def dict_of_osoba(os: Osoba) -> AnsDict:
     """Return a dictionary describing a person.
 
     Fields:
@@ -421,7 +449,7 @@ def dict_of_osoba(os):
     return {"id": os.id, "imie": os.imie, "email": os.email}
 
 
-def znajdz_osoba(engine, imie):
+def znajdz_osoba(engine: Engine, imie: str) -> List[AnsDict]:
     """Find people with the exact given name.
 
     Returns a list of dictionaries -- see dict_of_osoba.
@@ -434,7 +462,7 @@ def znajdz_osoba(engine, imie):
     return res
 
 
-def zapisz(engine, email, id_wydarzenia):
+def zapisz(engine: Engine, email: str, id_wydarzenia: int) -> None:
     """Sign a person up for an event.
 
     Inserts a row into the table of participations (see uczestnictwa).
@@ -450,12 +478,14 @@ def zapisz(engine, email, id_wydarzenia):
     with Session() as session:
         os = session.scalars(select(Osoba).where(Osoba.email == email)).one()
         wyd = session.get(Wydarzenie, id_wydarzenia)
+        if wyd is None:
+            raise NotFoundError(NotFoundError.wydarzenie_msg)
         wyd.uczestnicy.append(os)
         session.commit()
         session.close()
 
 
-def wypisz(engine, email, id_wydarzenia):
+def wypisz(engine: Engine, email: str, id_wydarzenia: int) -> None:
     """Remove a person from an event.
 
     Deletes a row from the table of participations (see uczestnictwa).
@@ -471,12 +501,15 @@ def wypisz(engine, email, id_wydarzenia):
     with Session() as session:
         wyd = session.get(Wydarzenie, id_wydarzenia)
         os = session.scalars(select(Osoba).where(Osoba.email == email)).one()
+        if wyd is None:
+            raise NotFoundError(NotFoundError.wydarzenie_msg)
         wyd.uczestnicy.remove(os)
         session.commit()
         session.close()
 
 
-def znajdz_wydarzenia_osoby(engine, email):
+def znajdz_wydarzenia_osoby(engine: Engine,
+                            email: str) -> List[Dict[str, Union[int, str]]]:
     """Find events that a person participates in.
 
     Returns a list of dictionaries with fields id and nazwa.
@@ -491,13 +524,14 @@ def znajdz_wydarzenia_osoby(engine, email):
                  .join(Osoba.wydarzenia))
                 .where(Osoba.email == email))
         rows = session.execute(stmt)
-        res = list(map(lambda row: {"id": row.id, "nazwa": row.nazwa},
-                       rows))
+        res: List[Dict[str, Union[int, str]]] \
+            = list(map(lambda row: {"id": row.id, "nazwa": row.nazwa}, rows))
         session.close()
     return res
 
 
-def znajdz_zapisanych_na_wydarzenie(engine, id_wydarzenia):
+def znajdz_zapisanych_na_wydarzenie(engine: Engine,
+                                    id_wydarzenia: int) -> List[AnsDict]:
     """Find the participants of an event.
 
     Returns a list of dictionaries -- see dict_of_osoba.
@@ -508,6 +542,8 @@ def znajdz_zapisanych_na_wydarzenie(engine, id_wydarzenia):
     Session = sessionmaker(engine)
     with Session() as session:
         wyd = session.get(Wydarzenie, id_wydarzenia)
+        if wyd is None:
+            raise NotFoundError(NotFoundError.wydarzenie_msg)
         res = list(map(dict_of_osoba, wyd.uczestnicy))
         session.close()
     return res

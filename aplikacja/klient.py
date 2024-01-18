@@ -6,9 +6,10 @@ To learn the required format, see configure_parser.
 import argparse
 import dbops
 import xmlrpc.client
+from typing import Iterable, Any
 
 
-def format_id_output(tbl, id):
+def format_id_output(tbl: str, id: int) -> str:
     """Return a string with a message that some entity has been added.
     
     Positional arguments:
@@ -19,7 +20,7 @@ def format_id_output(tbl, id):
     return "Dodano {0} nr {1}.".format(tbl, id)
 
 
-def format_wydarzenie_output(wyd_dict):
+def format_wydarzenie_output(wyd_dict: dbops.AnsDict) -> str:
     """Return a string summarizing an event.
     
     Positional arguments:
@@ -37,7 +38,7 @@ def format_wydarzenie_output(wyd_dict):
     return res
 
 
-def format_osoba_output(os_dict):
+def format_osoba_output(os_dict: dbops.AnsDict) -> str:
     """Return a string summarizing a person.
     
     Positional arguments:
@@ -49,7 +50,7 @@ def format_osoba_output(os_dict):
                                                  os_dict["email"])
 
 
-def format_miejsce_output(msc_dict):
+def format_miejsce_output(msc_dict: dbops.AnsDict) -> str:
     """Return a string summarizing a location.
     
     Positional arguments:
@@ -61,7 +62,7 @@ def format_miejsce_output(msc_dict):
                                                  msc_dict["adres"])
 
 
-def print_list_output(xs):
+def print_list_output(xs: Iterable[str]) -> None:
     """Print a list of strings, separated by double newline.
     
     Also outputs the number of results i.e. the length of the list.
@@ -79,7 +80,7 @@ class BadParserConfigFileError(Exception):
     pass
 
 
-def configure_parser(parser):
+def configure_parser(parser: argparse.ArgumentParser) -> None:
     r"""Configure the command line argument parser 
     according to help.txt. Required format:
     
@@ -119,7 +120,7 @@ def configure_parser(parser):
             line = f.readline()
 
 
-def invoke_action(action, action_args, online):
+def invoke_action(action: Any, action_args: Any, online: Any) -> Any:
     if online:
         server = xmlrpc.client.ServerProxy("http://localhost:8000",
                                            allow_none=True)
