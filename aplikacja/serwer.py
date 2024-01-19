@@ -3,7 +3,7 @@ found in dbops.py on localhost, port 8000. Once started, serves forever.
 Quit by keyboard interrupt.
 """
 
-import dbops
+import aplikacja.dbops as dbops
 from xmlrpc.server import SimpleXMLRPCServer
 from typing import Callable, Any
 
@@ -12,6 +12,7 @@ def app_with_engine(f: Callable[..., Any]) -> Callable[..., Any]:
     def res(*args: Any) -> Any:
         return dbops.with_engine(f, *args)
     return res
+
 
 def main():
     server = SimpleXMLRPCServer(("localhost", 8000), allow_none=True)
@@ -43,6 +44,7 @@ def main():
         server.register_function(app_with_engine(f), name)
 
     server.serve_forever()
+
 
 if __name__ == "__main__":
     main()

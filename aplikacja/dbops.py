@@ -15,12 +15,13 @@ import datetime
 class Base(DeclarativeBase):
     pass
 
-c1 : Column[Integer] = Column("osoba_id",
-                              ForeignKey("osoby.id"),
-                              primary_key=True)
-c2 : Column[Integer] = Column("wydarzenie_id",
-                              ForeignKey("wydarzenia.id"),
-                              primary_key=True)
+
+c1: Column[Integer] = Column("osoba_id",
+                             ForeignKey("osoby.id"),
+                             primary_key=True)
+c2: Column[Integer] = Column("wydarzenie_id",
+                             ForeignKey("wydarzenia.id"),
+                             primary_key=True)
 uczestnictwa = Table("osoba_wydarzenie", Base.metadata, c1, c2)
 """Table for many-to-many relation: participation of people in events."""
 
@@ -160,7 +161,8 @@ on the database.
 AnsDict = Dict[str, Union[int, Optional[str]]]
 
 
-def with_engine(f: Callable[..., Any], *args: Any, dispose:bool=False) -> None:
+def with_engine(f: Callable[..., Any], *args: Any,
+                dispose: bool = False) -> None:
     """Call function with a new SQLAlchemy engine.
 
     Positional arguments:
@@ -185,7 +187,7 @@ def utworz(engine: Engine) -> None:
 
 
 def dodaj_wydarzenie(engine: Engine, nazwa: str,
-                     data_rozp: str, godzina_rozp:str,
+                     data_rozp: str, godzina_rozp: str,
                      data_zak: str, godzina_zak: str, opis: str) -> int:
     """Insert row with given field values into the table of events."""
     Session = sessionmaker(engine)
@@ -356,7 +358,7 @@ def dodaj_miejsce_do_wydarzenia(engine: Engine, id_miejsca: int,
         wyd = session.get(Wydarzenie, id_wydarzenia)
         if wyd is None:
             raise NotFoundError(NotFoundError.wydarzenie_msg)
-        if msc is None: 
+        if msc is None:
             raise NotFoundError(NotFoundError.miejsce_msg)
         wyd.miejsce_id = id_miejsca
         wyd.miejsce = msc
@@ -383,7 +385,8 @@ def usun_miejsce_z_wydarzenia(engine: Engine, id_wydarzenia: int) -> None:
         session.close()
 
 
-def znajdz_wydarzenia_w_miejscu(engine: Engine, nazwa_miejsca: str) -> List[AnsDict]:
+def znajdz_wydarzenia_w_miejscu(engine: Engine,
+                                nazwa_miejsca: str) -> List[AnsDict]:
     """Return events that take place in locations with the given name.
 
     Returns a list of dictionaries -- see dict_of_wydarzenie.

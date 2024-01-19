@@ -4,14 +4,14 @@ To learn the required format, see configure_parser.
 """
 
 import argparse
-import dbops
+import aplikacja.dbops as dbops
 import xmlrpc.client
 from typing import Iterable, Any
 
 
 def format_id_output(tbl: str, id: int) -> str:
     """Return a string with a message that some entity has been added.
-    
+
     Positional arguments:
     tbl -- Polish name of the entity in the accusative case;
     "wydarzenie" for event, "miejsce" for location, "osobę" for person.
@@ -22,7 +22,7 @@ def format_id_output(tbl: str, id: int) -> str:
 
 def format_wydarzenie_output(wyd_dict: dbops.AnsDict) -> str:
     """Return a string summarizing an event.
-    
+
     Positional arguments:
     wyd_dict -- dictionary representing an event --
     see dbops.dict_of_wydarzenie.
@@ -40,7 +40,7 @@ def format_wydarzenie_output(wyd_dict: dbops.AnsDict) -> str:
 
 def format_osoba_output(os_dict: dbops.AnsDict) -> str:
     """Return a string summarizing a person.
-    
+
     Positional arguments:
     os_dict -- dictionary representing a person --
     see dbops.dict_of_osoba.
@@ -52,7 +52,7 @@ def format_osoba_output(os_dict: dbops.AnsDict) -> str:
 
 def format_miejsce_output(msc_dict: dbops.AnsDict) -> str:
     """Return a string summarizing a location.
-    
+
     Positional arguments:
     wyd_dict -- dictionary representing a location --
     see dbops.dict_of_miejsce.
@@ -64,7 +64,7 @@ def format_miejsce_output(msc_dict: dbops.AnsDict) -> str:
 
 def print_list_output(xs: Iterable[str]) -> None:
     """Print a list of strings, separated by double newline.
-    
+
     Also outputs the number of results i.e. the length of the list.
     """
     print("----WYNIKI----")
@@ -81,9 +81,9 @@ class BadParserConfigFileError(Exception):
 
 
 def configure_parser(parser: argparse.ArgumentParser) -> None:
-    r"""Configure the command line argument parser 
+    r"""Configure the command line argument parser
     according to help.txt. Required format:
-    
+
     - first line is exactly "OPTIONS\n", where \n is the newline character
     - the following lines specify arguments that do not accept a parameter
     and can be used independently of other arguments;
@@ -95,10 +95,10 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     - the following lines specify arguments that do not accept a parameter
     and cannot be used together with any of the other arguments listed
     under ACTIONS.
-    
+
     The first requirement is enforced by raising BadParserConfigFileError.
     """
-    with open("aplikacja/help.txt", "r", encoding="utf-8") as f:
+    with open("help.txt", "r", encoding="utf-8") as f:
         line = f.readline()
         if line != "OPTIONS\n":
             raise BadParserConfigFileError()
