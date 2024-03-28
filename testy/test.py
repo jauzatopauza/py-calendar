@@ -64,13 +64,13 @@ class TestWydarzenie(unittest.TestCase):
                                     "systemy typów")
         dbops.mod_wydarzenie(eng, id, "wykład z systemów typów",
                              None, None, None, None,
-                             "wykładowca Piotr Polesiuk")
+                             "wykładowca XYZ")
         xs = dbops.znajdz_wydarzenie(eng, "wykład z systemów typów")
         self.assertEqual(xs,
                          [{"id": id, "nazwa": "wykład z systemów typów",
                            "data_rozp": "2024-01-14", "godzina_rozp": "14:15",
                            "data_zak": "2024-01-14", "godzina_zak": "16:00",
-                           "opis": "wykładowca Piotr Polesiuk",
+                           "opis": "wykładowca XYZ",
                            "nazwa_miejsca": None}],
                          "błędna modyfikacja rekordu")
         eng.dispose()
